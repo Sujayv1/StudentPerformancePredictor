@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Predict student exam performance with AI using Attendance, Previous Marks, and Study Hours." />
+    <title>Student Performance Predictor</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+
+  <body>
+    <div class="page-wrapper">
+      <div class="container">
+        
+        <!-- Full-Card AI Computation Overlay Loader -->
+        <div class="loader-overlay" id="loaderOverlay">
+          <div class="loader-ring"></div>
+          <p class="loader-title">Running AI Simulation</p>
+          <p class="loader-subtitle">Evaluating student metrics through prediction models to forecast final scores...</p>
+        </div>
+
+        <!-- Dashboard Header -->
+        <div class="header">
+          <span class="header-icon">🎓</span>
+          <h1>Academic Predictor</h1>
+          <p class="subtitle">AI-assisted grade & student performance simulator</p>
+        </div>
+
+        <!-- Single-Page Views Wrapper -->
+        <div class="views-wrapper" id="viewsWrapper">
+          
+          <!-- VIEW 1: Sliders Input Panel -->
+          <div class="view-panel {% if prediction is none %}active{% endif %}" id="settingsView">
+            <form method="POST" id="predictorForm">
+              <!-- Card Input: Attendance -->
+              <div class="input-group">
+                <div class="input-header">
+                  <label for="attendance">
+                    <span class="icon">📈</span> Attendance
+                  </label>
+                  <span class="value-badge" id="attendanceVal">
+                    {{ attendance|int }}%
+                  </span>
+                </div>
+                <input 
+                  type="range" 
+                  id="attendance" 
+                  name="attendance" 
+                  min="0" 
+                  max="100" 
+                  step="1"
+                  value="{{ attendance|int }}" 
+                  required 
+                />
+                <span class="input-desc">Percentage of classes attended during the semester.</span>
+              </div>
+
+              <!-- Card Input: Previous Marks -->
+              <div class="input-group">
+                <div class="input-header">
+                  <label for="previous_marks">
+                    <span class="icon">🎯</span> Previous Marks
+                  </label>
+                  <span class="value-badge" id="prevMarksVal">
+                    {{ previous_marks|int }}/100
+                  </span>
+                </div>
+                <input 
+                  type="range" 
+                  id="previous_marks" 
+                  name="previous_marks" 
+                  min="0" 
+                  max="100" 
+                  step="1"
+                  value="{{ previous_marks|int }}" 
+                  required 
+                />
+                <span class="input-desc">Average grades scored in earlier midterms and quizzes.</span>
+              </div>
+
+              <!-- Card Input: Study Hours -->
+              <div class="input-group">
+                <div class="input-header">
+                  <label for="study_hours">
+                    <span class="icon">⏱️</span> Study Hours
+                  </label>
+                  <span class="value-badge" id="studyHoursVal">
+                    {{ study_hours|int }} hrs
+                  </span>
+                </div>
+                <input 
+                  type="range" 
+                  id="study_hours" 
+                  name="study_hours" 
+                  min="0" 
+                  max="12" 
+                  step="1"
+                  value="{{ study_hours|int }}" 
+                  required 
+                />
+                <span class="input-desc">Total hours spent studying outside of classes daily.</span>
+              </div>
+
+              <!-- Action Predict Button -->
+              <button type="submit" class="btn-submit" id="submitBtn">
+                <span class="btn-text">Predict Exam Score</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- VIEW 2: Analytics Showcase Panel -->
+          <div class="view-panel {% if prediction is not none %}active{% endif %}" id="analyticsView">
+            {% if prediction is not none %}
+            <!-- Animated Prediction Score Showcase Card -->
+            <div class="result-card">
+              <p class="result-title">Predicted Final Score</p>
+              <div class="score-container">
+                <span class="score-value" id="animatedScore">0.00</span>
+                <span class="score-total">/100</span>
+              </div>
+              
+              {% if prediction >= 85 %}
+              <span class="feedback-tag feedback-excellent">🌟 High Honor Standing (Grade A)</span>
+              {% elif prediction >= 70 %}
+              <span class="feedback-tag feedback-good">✨ Meritorious Standing (Grade B)</span>
+              {% elif prediction >= 50 %}
+              <span class="feedback-tag feedback-average">📚 Satisfactory Standing (Grade C)</span>
+              {% else %}
+              <span class="feedback-tag feedback-low">⚠️ Needs Development / Review</span>
+              {% endif %}
+            </div>
+
+            <!-- Personalized Metric Comparison Guages -->
+            <div class="benchmarks-list">
+              <h3 class="graph-title" style="margin-left: 2px;"><span style="color: var(--accent-cyan);">👤</span> Simulator Benchmarks</h3>
+              
+              <!-- Attendance Benchmark Card -->
+              <div class="benchmark-item">
+                <div class="benchmark-info">
+                  <span class="benchmark-label">📈 Attendance</span>
+                  <span class="benchmark-values">
+                    <span class="benchmark-user-val">{{ attendance|int }}%</span> vs Target 90%
+                  </span>
+                </div>
+                <div class="benchmark-track">
+                  <div class="benchmark-bar" style="width: {{ attendance }}%;"></div>
+                  <div class="benchmark-target" style="left: 90%;" title="Recommended Academic Target: 90%"></div>
+                </div>
+              </div>
+
+              <!-- Previous Marks Benchmark Card -->
+              <div class="benchmark-item">
+                <div class="benchmark-info">
+                  <span class="benchmark-label">🎯 Previous Marks</span>
+                  <span class="benchmark-values">
+                    <span class="benchmark-user-val">{{ previous_marks|int }}/100</span> vs Target 80%
+                  </span>
+                </div>
+                <div class="benchmark-track">
+                  <div class="benchmark-bar" style="width: {{ previous_marks }}%;"></div>
+                  <div class="benchmark-target" style="left: 80%;" title="Standard Grading Target: 80%"></div>
+                </div>
+              </div>
+
+              <!-- Study Hours Benchmark Card -->
+              <div class="benchmark-item">
+                <div class="benchmark-info">
+                  <span class="benchmark-label">⏱️ Study Hours</span>
+                  <span class="benchmark-values">
+                    <span class="benchmark-user-val">{{ study_hours|int }} hrs/day</span> vs Target 8 hrs/day
+                  </span>
+                </div>
+                <div class="benchmark-track">
+                  {% set study_pct = (study_hours / 12 * 100)|round %}
+                  <div class="benchmark-bar" style="width: {{ study_pct }}%;"></div>
+                  <div class="benchmark-target" style="left: 66.6%;" title="Optimal Study Target: 8 hrs/day"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Model Evaluation Tabbed Graphs Card -->
+            <div class="graph-section">
+              <div class="graph-header">
+                <span class="graph-title">📊 Model Validation Plots</span>
+                <div class="tab-bar">
+                  <button type="button" class="tab-btn active" onclick="switchGraphTab('heatmapTab', this)">Heatmap</button>
+                  <button type="button" class="tab-btn" onclick="switchGraphTab('scatterTab', this)">Scatter Plot</button>
+                </div>
+              </div>
+              <div class="graph-container">
+                <!-- Tab Panel 1: Heatmap -->
+                <div class="graph-panel active" id="heatmapTab">
+                  <img src="{{ url_for('static', filename='heatmap.png') }}" class="graph-img" alt="Feature Correlation Heatmap" />
+                </div>
+                <!-- Tab Panel 2: Scatter Plot -->
+                <div class="graph-panel" id="scatterTab">
+                  <img src="{{ url_for('static', filename='scatter_plot.png') }}" class="graph-img" alt="Marks vs Study Hours Correlation" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Return Button -->
+            <button type="button" class="btn-secondary" onclick="reSimulate()">
+              🔄 Adjust Inputs & Predict Again
+            </button>
+            {% endif %}
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Client-Side Dashboard Core Script -->
+    <script>
+      // Slider interactive number updates
+      const sliders = [
+        { id: 'attendance', valId: 'attendanceVal', suffix: '%' },
+        { id: 'previous_marks', valId: 'prevMarksVal', suffix: '/100' },
+        { id: 'study_hours', valId: 'studyHoursVal', suffix: ' hrs' }
+      ];
+
+      sliders.forEach(slider => {
+        const sliderInput = document.getElementById(slider.id);
+        const valueDisplay = document.getElementById(slider.valId);
+
+        if (sliderInput && valueDisplay) {
+          sliderInput.addEventListener('input', (e) => {
+            valueDisplay.textContent = e.target.value + slider.suffix;
+          });
+        }
+      });
+
+      // Submit Loader Overlay Event
+      const form = document.getElementById('predictorForm');
+      const loaderOverlay = document.getElementById('loaderOverlay');
+      if (form && loaderOverlay) {
+        form.addEventListener('submit', () => {
+          loaderOverlay.classList.add('active');
+        });
+      }
+
+      // Graph validation tab switching
+      function switchGraphTab(tabId, btn) {
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabPanels = document.querySelectorAll('.graph-panel');
+
+        tabBtns.forEach(b => b.classList.remove('active'));
+        tabPanels.forEach(p => p.classList.remove('active'));
+
+        btn.classList.add('active');
+        const targetPanel = document.getElementById(tabId);
+        if (targetPanel) {
+          targetPanel.classList.add('active');
+        }
+      }
+
+      // Local View Swapping (Preserves input selections seamlessly)
+      function reSimulate() {
+        const settingsView = document.getElementById('settingsView');
+        const analyticsView = document.getElementById('analyticsView');
+        const viewsWrapper = document.getElementById('viewsWrapper');
+
+        if (settingsView && analyticsView) {
+          // Lock current width/height during swap transitions to prevent layout jumps
+          viewsWrapper.style.minHeight = viewsWrapper.clientHeight + 'px';
+
+          analyticsView.classList.remove('active');
+          settingsView.classList.add('active');
+
+          // Release heights after panel settles
+          setTimeout(() => {
+            viewsWrapper.style.minHeight = '';
+          }, 500);
+        }
+      }
+
+      // 60FPS Hardware-Accelerated Ticking Counter for Predicted Score
+      document.addEventListener("DOMContentLoaded", () => {
+        const scoreElement = document.getElementById("animatedScore");
+        {% if prediction is not none %}
+        const targetVal = parseFloat("{{ prediction }}");
+        if (scoreElement && !isNaN(targetVal)) {
+          const duration = 1200; // counter animation length in ms
+          const startTime = performance.now();
+
+          function updateCounter(timestamp) {
+            const elapsed = timestamp - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Easing Out Cubic progression
+            const progressEase = 1 - Math.pow(1 - progress, 3);
+            const currentVal = progressEase * targetVal;
+            
+            scoreElement.textContent = currentVal.toFixed(2);
+
+            if (progress < 1) {
+              window.requestAnimationFrame(updateCounter);
+            } else {
+              scoreElement.textContent = targetVal.toFixed(2);
+            }
+          }
+          window.requestAnimationFrame(updateCounter);
+        }
+        {% endif %}
+      });
+    </script>
+  </body>
+</html>
